@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+  model User {
+    user_id Int @id @default(autoincrement())
+    username String @unique
+    password String
+    name String
+    role Role @relation(fields: [roleId], references: [id])
+    roleId Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    OrderCreatedBy   Order[]  @relation(name: "OrderCreatedByUser")
+    OrderUpdatedBy   Order[]  @relation(name: "OrderUpdatedByUser")
+    CustomerCreatedBy   Customer[]  @relation(name: "CustomerCreatedByUser")
+    CustomerUpdatedBy   Customer[]  @relation(name: "CustomerUpdatedByUser")
+    TableCreatedBy   Table[]  @relation(name: "TableCreatedByUser")
+    TableUpdatedBy   Table[]  @relation(name: "TableUpdatedByUser")
+    ActionById Reservations[]
+  }
+
+model Customer {
+  customer_id Int @id @default(autoincrement())
+  customer_name String
+  email String @unique
+  password String
+  phone_number String @unique
+  reservations Reservations[]
+  orders      Order[] 
+  created_by User? @relation(name: "CustomerCreatedByUser", fields: [createdById], references: [user_id])
+  createdById Int?
+  updated_by User? @relation(name: "CustomerUpdatedByUser",  fields: [updatedById], references: [user_id])
+  updatedById Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Guest {
+  guest_id Int @id @default(autoincrement())
+  name String
+  phone_number String
+  orders Order[]
+  createdAt DateTime @default(now())
+}
+
+model Order {
+  id           Int       @id @default(autoincrement())
+  items        ItemOrder[]
+  customer       Customer?     @relation(fields: [customerId], references: [customer_id])
+  customerId    Int?
+  guestId         Int?
+  guest         Guest?  @relation(fields: [guestId], references: [guest_id])
+  totalPrice   Float
+  paymentMethod String
+  paymentStatus PaymentStatus
+  orderStatusId Int 
+  orderStatus OrderStatus @relation(fields: [orderStatusId], references: [id])
+  table Table @relation(fields: [tableId], references: [id])
+  tableId Int
+  createdBy    User?      @relation(name: "OrderCreatedByUser", fields: [createdById], references: [user_id])
+  createdById  Int?
+  createdAt    DateTime  @default(now())
+  updatedBy    User?    @relation(name: "OrderUpdatedByUser", fields: [updatedById], references: [user_id])
+  updatedById  Int?
+  updatedAt    DateTime  @updatedAt @default(now())
+  finishedCook DateTime? @default(dbgenerated("null"))
+}
+
+model ItemOrder {
+  id            Int        @id @default(autoincrement())
+  status        ItemStatus @relation(fields: [statusId], references: [id])
+  statusId      Int
+  quantity      Int
+  food          Food       @relation(fields: [foodId], references: [id])
+  foodId        Int
+  order         Order      @relation(fields: [orderId], references: [id])
+  orderId       Int
+  note          String?
+   createdAt    DateTime  @default(now())
+    updatedAt    DateTime  @updatedAt @default(now())
+}
+
+model PhoneCode {
+  id Int @id @default(autoincrement())
+  name String
+  dial_code String
+  code String
+}
+
+
+model Reservations {
+  reservation_id Int @id @default(autoincrement())
+  status Int
+  reservationStatus ReservationStatus @relation(fields: [status], references: [id])
+  customerId Int
+  customers Customer? @relation(fields: [customerId], references: [customer_id])
+  date_reservation DateTime
+  time_reservationId Int
+  time_reservation Time @relation(fields: [time_reservationId], references: [time_id])
+  pax Int
+  actionById Int
+  actionBy User @relation(fields: [actionById], references: [user_id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+model Time {
+  time_id Int @id @default(autoincrement())
+  time String
+  reservation Reservations[]
+}
+
+model Food {
+  id Int @id @default(autoincrement())
+  name String
+  spicyId Int
+  spicy_level FoodSpicyLevel @relation(fields: [spicyId], references: [id])
+  image String
+  price Int
+  description String
+  cook_estimate Int
+  availability Boolean
+  item_order ItemOrder[]
+  category FoodCategory @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+model Table{
+  id Int @id @default(autoincrement())
+  table_no Int @unique
+  unique_code String @unique
+  status StatusTable @relation(fields: [statusId], references: [id])
+  statusId Int
+  order Order[]
+  waitersCall WaitersCalls[]
+  createdById Int?
+  createdBy    User?      @relation(name: "TableCreatedByUser", fields: [createdById], references: [user_id])
+  updatedById Int?
+  updatedBy    User?      @relation(name: "TableUpdatedByUser", fields: [updatedById], references: [user_id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+model FoodSpicyLevel {
+  id Int @id @default(autoincrement())
+  level Int
+  foods Food[]
+}
+
+model FoodCategory {
+  id Int @id @default(autoincrement())
+  category String
+  image String @default("")
+  foods Food[]
+}
+
+model ItemStatus {
+  id Int @id @default(autoincrement())
+  status String
+  item_order ItemOrder[]
+}
+
+model OrderStatus {
+  id Int @id @default(autoincrement())
+  status String
+  order Order[]
+}
+
+
+model ReservationStatus {
+  id Int @id @default(autoincrement())
+  status String
+  reservations Reservations[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id Int @id @default(autoincrement())
+  role String
+  user User[]
+}
+
+model StatusTable {
+  id Int @id @default(autoincrement())
+  status String
+  table Table[]
+}
+
+model WaitersCalls {
+  id Int @id @default(autoincrement())
+  table Table @relation(fields: [tableId], references: [id])
+  tableId Int
+  action Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+enum PaymentStatus {
+  WAITING_PAYMENT
+  CHECKING_PAYMENT
+  PAID
+}
+
+
+
+// enum StatusTable {
+//   EMPTY
+//   FILLED
+//   RESERVED
+// }
+
+// enum Role {
+//   USER
+//   ADMIN
+// }
+
+// enum ItemStatus {
+//   WAITING_PAYMENT
+//   COOK_QUEUE
+//   ON_COOKING
+//   RESERVED
+// }
